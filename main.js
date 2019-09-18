@@ -8,40 +8,46 @@ const sanitizeHtml = require('sanitize-html');
 const bodyParser = require('body-parser');
 const compression = require('compression');
 
+app.use(express.static('public'));
 app.use(bodyParser.urlencoded({ extended: false }));
-app.use(compression())
+app.use(compression());
 
-app.get('/', (req, res) => {
-  fs.readdir('./data', function(error, filelist){
-    let title = 'Welcome';
-    let description = 'Hello, Node.js';
-    let list = template.list(filelist);
-    let html = template.HTML(title, list,
-      `<h2>${title}</h2>${description}`,
-      `<a href="/create">create</a>`
-    );
-
-    res.send(html)
+app.get('*', (req, res, next) => {
+  fs.readdir('./data', function(error, filelist) {
+    req.list = filelist;
+    next();
   })
 })
 
+app.get('/', (req, res) => {
+  let title = 'Welcome';
+  let description = 'Hello, Node.js';
+  let list = template.list(req.list);
+  let html = template.HTML(title, list,
+    `<h2>${title}</h2>${description}
+     <img src="/images/room.jpg" style="width:500px; display:block; margin-top:10px" />
+    `,
+    `<a href="/create">create</a>`
+  );
+
+  res.send(html)
+})
+
 app.get('/create', (req, res) => {
-  fs.readdir('./data', function(error, filelist){
-    let title = 'WEB - create';
-    let list = template.list(filelist);
-    let html = template.HTML(title, list, `
-      <form action="/create_process" method="post">
-        <p><input type="text" name="title" placeholder="title"></p>
-        <p>
-          <textarea name="description" placeholder="description"></textarea>
-        </p>
-        <p>
-          <input type="submit">
-        </p>
-      </form>
-    `, '');
-    res.send(html);
-  });
+  let title = 'WEB - create';
+  let list = template.list(req.list);
+  let html = template.HTML(title, list, `
+    <form action="/create_process" method="post">
+      <p><input type="text" name="title" placeholder="title"></p>
+      <p>
+        <textarea name="description" placeholder="description"></textarea>
+      </p>
+      <p>
+        <input type="submit">
+      </p>
+    </form>
+  `, '');
+  res.send(html);
 })
 
 app.post('/create_process', (req, res) => {
@@ -54,28 +60,26 @@ app.post('/create_process', (req, res) => {
 })
 
 app.get('/update/:pageID', (req, res) => {
-  fs.readdir('./data', function(error, filelist){
-    let filteredId = path.parse(req.params.pageID).base;
-    fs.readFile(`data/${filteredId}`, 'utf8', function(err, description){
-      let title = req.params.pageID;
-      let list = template.list(filelist);
-      let html = template.HTML(title, list,
-        `
-        <form action="/update_process" method="post">
-          <input type="hidden" name="id" value="${title}">
-          <p><input type="text" name="title" placeholder="title" value="${title}"></p>
-          <p>
-            <textarea name="description" placeholder="description">${description}</textarea>
-          </p>
-          <p>
-            <input type="submit">
-          </p>
-        </form>
-        `,
-        `<a href="/create">create</a> <a href="/update?id=${title}">update</a>`
-      );
-        res.send(html)
-    });
+  let filteredId = path.parse(req.params.pageID).base;
+  fs.readFile(`data/${filteredId}`, 'utf8', function(err, description){
+    let title = req.params.pageID;
+    let list = template.list(req.list);
+    let html = template.HTML(title, list,
+      `
+      <form action="/update_process" method="post">
+        <input type="hidden" name="id" value="${title}">
+        <p><input type="text" name="title" placeholder="title" value="${title}"></p>
+        <p>
+          <textarea name="description" placeholder="description">${description}</textarea>
+        </p>
+        <p>
+          <input type="submit">
+        </p>
+      </form>
+      `,
+      `<a href="/create">create</a> <a href="/update?id=${title}">update</a>`
+    );
+      res.send(html)
   });
 })
 
