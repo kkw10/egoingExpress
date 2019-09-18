@@ -104,28 +104,41 @@ app.post('/delete_process', (req, res) => {
   })
 })
 
-app.get('/page/:pageID', (req, res) => {
-  fs.readdir('./data', function(error, filelist){
+app.get('/page/:pageID', (req, res, next) => {
+  fs.readdir('./data', function(err, filelist){
     let filteredId = path.parse(req.params.pageID).base;
     fs.readFile(`data/${filteredId}`, 'utf8', function(err, description){
-      let title = req.params.pageID;
-      let sanitizedTitle = sanitizeHtml(title);
-      let sanitizedDescription = sanitizeHtml(description, {
-        allowedTags:['h1']
-      });
-      let list = template.list(filelist);
-      let html = template.HTML(sanitizedTitle, list,
-        `<h2>${sanitizedTitle}</h2>${sanitizedDescription}`,
-        ` <a href="/create">create</a>
-          <a href="/update/${sanitizedTitle}">update</a>
-          <form action="/delete_process" method="post">
-            <input type="hidden" name="id" value="${sanitizedTitle}">
-            <input type="submit" value="delete">
-          </form>`
-      );
-      res.send(html)
+      if(!err) {
+        let title = req.params.pageID;
+        let sanitizedTitle = sanitizeHtml(title);
+        let sanitizedDescription = sanitizeHtml(description, {
+          allowedTags:['h1']
+        });
+        let list = template.list(filelist);
+        let html = template.HTML(sanitizedTitle, list,
+          `<h2>${sanitizedTitle}</h2>${sanitizedDescription}`,
+          ` <a href="/create">create</a>
+            <a href="/update/${sanitizedTitle}">update</a>
+            <form action="/delete_process" method="post">
+              <input type="hidden" name="id" value="${sanitizedTitle}">
+              <input type="submit" value="delete">
+            </form>`
+        );
+        res.send(html)
+      } else {
+        next(err)
+      }
     });
   });
+})
+
+app.use((req, res, next) => {
+  res.status(404).send("404 not found...")
+})
+
+app.use((err, req, res, next) => {
+  console.error(err.stack)
+  res.status(500).send("Somthing broke...")
 })
 
 app.listen(3000, () => {
