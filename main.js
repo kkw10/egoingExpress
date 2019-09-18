@@ -5,6 +5,9 @@ const qs = require('querystring');
 const template = require('./lib/template');
 const path = require('path');
 const sanitizeHtml = require('sanitize-html');
+const bodyParser = require('body-parser');
+
+app.use(bodyParser.urlencoded({ extended: false }));
 
 app.get('/', (req, res) => {
   fs.readdir('./data', function(error, filelist){
@@ -40,19 +43,12 @@ app.get('/create', (req, res) => {
 })
 
 app.post('/create_process', (req, res) => {
-  let body = '';
-  req.on('data', function(data){
-      body = body + data;
-  });
-  req.on('end', function(){
-      let post = qs.parse(body);
-      let title = post.title;
-      let description = post.description;
-      fs.writeFile(`data/${title}`, description, 'utf8', function(err){
-        res.writeHead(302, {Location: `/page/${title}`});
-        res.end();
-      })
-  });
+  let post = req.body;
+  let title = post.title;
+  let description = post.description;
+  fs.writeFile(`data/${title}`, description, 'utf8', function(err){
+    res.redirect(`/page/${title}`)
+  })  
 })
 
 app.get('/update/:pageID', (req, res) => {
@@ -82,36 +78,24 @@ app.get('/update/:pageID', (req, res) => {
 })
 
 app.post('/update_process', (req, res) => {
-  let body = '';
-  req.on('data', function(data){
-      body = body + data;
-  });
-  req.on('end', function(){
-      let post = qs.parse(body);
-      let id = post.id;
-      let title = post.title;
-      let description = post.description;
-      fs.rename(`data/${id}`, `data/${title}`, function(error){
-        fs.writeFile(`data/${title}`, description, 'utf8', function(err){
-          res.redirect(`/?id=${title}`)
-        })
-      });
+  let post = req.body;
+  let id = post.id;
+  let title = post.title;
+  let description = post.description;
+  fs.rename(`data/${id}`, `data/${title}`, function(error){
+    fs.writeFile(`data/${title}`, description, 'utf8', function(err){
+      res.redirect(`/?id=${title}`)
+    })
   });
 })
 
 app.post('/delete_process', (req, res) => {
-  let body = '';
-  req.on('data', function(data){
-      body = body + data;
-  });
-  req.on('end', function(){
-      let post = qs.parse(body);
-      let id = post.id;
-      let filteredId = path.parse(id).base;
-      fs.unlink(`data/${filteredId}`, function(error){
-        res.redirect('/')
-      })
-  });
+  let post = req.body;
+  let id = post.id;
+  let filteredId = path.parse(id).base;
+  fs.unlink(`data/${filteredId}`, function(error){
+    res.redirect('/')
+  })
 })
 
 app.get('/page/:pageID', (req, res) => {
